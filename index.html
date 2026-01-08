@@ -2,50 +2,91 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>LWA Employee Training View</title>
+  <title>LWA Employee Training Record</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
   <style>
-    body { background:#f4f6f9; font-family:system-ui; transition:all .3s; }
-    body.dark { background:#121212; color:#e0e0e0; }
-    body.dark .card { background:#1e1e1e; color:#e0e0e0; border:1px solid #333; }
-    body.dark table th { background:#343a40; color:#fff; }
-    body.dark .table { color:#e0e0e0; }
-    .card { box-shadow:0 4px 12px rgba(0,0,0,.07); border:none; border-radius:12px; }
-    .badge-due { background:#28a745; color:#fff; }
-    .badge-over { background:#dc3545; color:#fff; }
+    body { background:#f4f6f9; font-family:system-ui, -apple-system, sans-serif; }
+    .header-section {
+      text-align: center;
+      padding: 2.5rem 1rem 2rem;
+    }
+    .logo {
+      max-width: 150px;
+      width: 80%;
+      height: auto;
+      margin-bottom: 1rem;
+    }
+    .divider-bar {
+      height: 4px;
+      background-color: #3a4453; /* dark blue-grey */
+      width: 200px;
+      max-width: 80%;
+      margin: 0 auto 1.5rem auto;
+      border-radius: 2px;
+    }
+    .main-title {
+      font-size: 1.8rem;
+      font-weight: 700;
+      color: #000;
+      margin-bottom: 0.5rem;
+    }
+    .subtitle {
+      color: #555;
+      margin-bottom: 2rem;
+      font-size: 1.1rem;
+    }
+    .badge-due { background:#28a745; color:#fff; font-weight:600; }
+    .badge-over { background:#dc3545; color:#fff; font-weight:600; }
     .badge-comp { background:#6c757d; color:#fff; }
-    .badge-norecord { background:#6c757d; color:#fff; }
-    table th { background:#343a40; color:#fff; }
-    .training-link { color:#007bff; text-decoration:underline; }
-    body.dark .training-link { color:#4dabf7; }
-    .schedule-training { color:inherit; font-weight:500; }
-    body.dark .schedule-training { color:#ccc; }
+    .badge-norecord { background:#adb5bd; color:#fff; }
+    table th {
+      background:#343a40;
+      color:#fff;
+      font-weight:600;
+    }
+    .training-link {
+      color:#007bff;
+      text-decoration:underline;
+      font-weight:600;
+    }
+    .card {
+      box-shadow:0 4px 12px rgba(0,0,0,.07);
+      border:none;
+      border-radius:12px;
+    }
   </style>
 </head>
-<body class="p-3">
+<body>
 <div class="container-fluid">
-  <div class="card mb-4">
-    <div class="card-body text-center py-5">
-      <h1 class="display-5 fw-bold text-primary">My LWA Training Record</h1>
-      <p class="lead">Search your name below to view your current trainings</p>
-      <div class="status-bar text-muted mb-3" id="status">Loading...</div>
-      <div class="d-flex justify-content-center">
-        <select id="employeeSelect" class="form-select w-auto" style="min-width:300px;">
-          <option value="">— Select your name —</option>
-        </select>
+
+  <!-- Header with Logo, Divider, and Title -->
+  <div class="header-section">
+    <img src="/images/logo.png" alt="LWA Logo" class="logo">
+    <!-- If you placed the logo in root instead of /images, change to src="/logo.png" -->
+    <div class="divider-bar"></div>
+    <h1 class="main-title">My LWA Training Record</h1>
+    <p class="subtitle lead">Select your name below to view your current training status</p>
+
+    <div class="d-flex justify-content-center mb-3">
+      <select id="employeeSelect" class="form-select w-auto" style="min-width:300px; max-width:100%;">
+        <option value="">— Select your name —</option>
+      </select>
+    </div>
+
+    <div class="text-muted small" id="status">Loading training data...</div>
+  </div>
+
+  <!-- Training Details Card -->
+  <div class="card mx-3 mx-md-5 mb-5 shadow d-none" id="detailPane">
+    <div class="card-body p-4">
+      <div class="text-center py-5">
+        <p class="fs-4 text-muted">Select your name above to view your training record</p>
       </div>
     </div>
   </div>
 
-  <div id="detailPane" class="card d-none">
-    <div class="card-body">
-      <div class="text-center text-muted py-5">
-        <p class="fs-4">Select your name above to view your training status</p>
-      </div>
-    </div>
-  </div>
 </div>
 
 <script>
@@ -70,6 +111,7 @@ async function loadData() {
     if (!resp.ok) throw new Error('Failed to load');
     const text = await resp.text();
     const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+    if (lines.length < 2) throw new Error('No data');
     const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, ''));
     const records = lines.slice(1).map(line => {
       const vals = line.split(',').map(v => v.trim().replace(/^"|"$/g, ''));
@@ -78,7 +120,6 @@ async function loadData() {
       return rec;
     }).filter(r => r['Employee Name'] && r['Topic']);
 
-    // Build maps
     employeeMap = {};
     allTopics = new Set();
     records.forEach(r => {
@@ -92,9 +133,9 @@ async function loadData() {
     });
 
     populateEmployeeDropdown();
-    document.getElementById('status').innerHTML = 'Select your name to view your trainings';
+    document.getElementById('status').innerHTML = '';
   } catch (err) {
-    document.getElementById('status').innerHTML = '<span class="text-danger">Error loading data</span>';
+    document.getElementById('status').innerHTML = '<span class="text-danger">Error loading data — please try again later</span>';
   }
 }
 
@@ -128,7 +169,7 @@ function badge(r) {
   if (s === 'Completed') return `<span class="badge badge-comp">Completed</span>`;
   if (s === 'Not Due') return `<span class="badge badge-due">Not Due${days ? ' (' + days + 'd)' : ''}</span>`;
   if (s === 'Overdue') return `<span class="badge badge-over">Overdue${days ? ' (' + days + 'd)' : ''}</span>`;
-  return `<span class="badge bg-secondary">${s || '—'}</span>`;
+  return `<span class="badge bg-secondary text-white">${s || '—'}</span>`;
 }
 
 function populateEmployeeDropdown() {
@@ -143,8 +184,11 @@ function populateEmployeeDropdown() {
       sel.appendChild(opt);
     });
   sel.onchange = e => {
-    if (e.target.value) showEmployeeDetail(e.target.value);
-    else document.getElementById('detailPane').classList.add('d-none');
+    if (e.target.value) {
+      showEmployeeDetail(e.target.value);
+    } else {
+      document.getElementById('detailPane').classList.add('d-none');
+    }
   };
 }
 
@@ -153,10 +197,19 @@ function showEmployeeDetail(norm) {
   if (!emp) return;
   const name = emp.original;
   let html = `<div class="card-body">
-    <h3 class="text-center mb-4">${name}'s Training Record</h3>
+    <h3 class="text-center mb-4 fw-bold">${name}'s Training Record</h3>
     <div class="table-responsive">
-      <table class="table table-sm table-hover">
-        <thead><tr><th>Training Topic</th><th>Training Date</th><th>Completion Date</th><th>Expires</th><th>Days Left</th><th>Status</th></tr></thead>
+      <table class="table table-hover">
+        <thead>
+          <tr>
+            <th>Training Topic</th>
+            <th>Training Date</th>
+            <th>Completion Date</th>
+            <th>Expires</th>
+            <th>Days Left</th>
+            <th>Status</th>
+          </tr>
+        </thead>
         <tbody>`;
 
   Array.from(allTopics).sort((a,b) => a.localeCompare(b)).forEach(topic => {
@@ -174,7 +227,7 @@ function showEmployeeDetail(norm) {
         <td>${badge(r)}</td>
       </tr>`;
     } else {
-      html += `<tr class="table-secondary">
+      html += `<tr class="table-light">
         <td>${cell}</td>
         <td colspan="5"><span class="badge badge-norecord">No Record</span></td>
       </tr>`;
