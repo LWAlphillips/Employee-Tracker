@@ -62,17 +62,20 @@
 <div class="container-fluid">
 
   <!-- Header with Logo, Divider, and Title -->
-  <div class="header-section">
-    <img src="/aubry-logo.png" alt="LWA Logo" class="logo">
-    <div class="divider-bar"></div>
-    <h1 class="main-title">My LWA Training Record</h1>
-    <p class="subtitle lead">Select your name below to view your current training status</p>
+  HTML<div class="header-section">
+  <img src="/aubry-logo.png" alt="LWA Logo" class="logo">
+  <div class="divider-bar"></div>
+  <h1 class="main-title">My LWA Training Record</h1>
+  <p class="subtitle lead">Select your name below to view your current training status</p>
 
-    <div class="d-flex justify-content-center mb-3">
-      <select id="employeeSelect" class="form-select w-auto" style="min-width:300px; max-width:100%;">
-        <option value="">— Select your name —</option>
-      </select>
-    </div>
+  <div class="d-flex justify-content-center mb-3">
+    <select id="employeeSelect" class="form-select w-auto" style="min-width:300px; max-width:100%;">
+      <option value="">— Select your name —</option>
+    </select>
+  </div>
+
+  <div class="text-muted small" id="status">Loading training data...</div>
+</div>
 
     <div class="text-muted small" id="status">Loading training data...</div>
   </div>
