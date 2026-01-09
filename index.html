@@ -34,11 +34,6 @@
       color:#fff;
       font-weight:600;
     }
-    .training-link {
-      color:#007bff;
-      text-decoration:underline;
-      font-weight:600;
-    }
     .card {
       box-shadow:0 4px 12px rgba(0,0,0,.07);
       border:none;
@@ -51,7 +46,6 @@
       border-radius:8px;
       margin:20px 0 10px;
     }
-    body.dark .section-header { background:#2c2c2c; }
   </style>
 </head>
 <body>
@@ -78,11 +72,11 @@
 </div>
 
 <script>
-// SAME SOURCE AS THE MAIN TRACKER
+// YOUR CLEAN CSV URL
 const SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRV7v_0mQWcqJI9ExD7lphRQDaHnyv65Tp_i2uDiBJOcxAJ5l6jXV1-WFFBKSU9YZErgLDkGB6nYmug/pub?output=csv';
 
 const LINKS = {
-  "Fall Protection Awareness": "https://www.surveymonkey.com/r/LWAFallProtectionQuiz",
+  "Fall Protection": "https://www.surveymonkey.com/r/LWAFallProtectionQuiz",
   "Hazard Communication (HazCom/GHS)": "https://www.surveymonkey.com/r/LWAHazCom",
   "Indoor Heat Illness Prevention": "https://www.surveymonkey.com/r/LWAIndoorHeatIllness",
   "Outdoor Heat Illness Prevention": "https://www.surveymonkey.com/r/LWAHeatIllnessQuiz",
@@ -90,9 +84,9 @@ const LINKS = {
   "Workplace Violence Prevention": "https://www.surveymonkey.com/r/LWAWVPP"
 };
 
-// REQUIRED TRAININGS
+// REQUIRED TRAININGS – "Fall Protection" is the canonical name (covers Awareness too)
 const REQUIRED_TRAININGS = [
-  "Fall Protection Awareness",
+  "Fall Protection",
   "Hazard Communication (HazCom/GHS)",
   "Indoor Heat Illness Prevention",
   "Outdoor Heat Illness Prevention",
@@ -130,8 +124,11 @@ async function loadData() {
 
     employeeMap = {};
     records.forEach(r => {
+      let topic = r['Topic'];
+      // Normalize "Fall Protection Awareness" to "Fall Protection"
+      if (topic === "Fall Protection Awareness") topic = "Fall Protection";
+
       const orig = r['Employee Name'];
-      const topic = r['Topic'];
       const norm = normalizeName(orig);
       if (!norm || !topic) return;
       if (!employeeMap[norm]) employeeMap[norm] = { original: orig, records: {} };
@@ -262,7 +259,7 @@ function showEmployeeDetail(norm) {
         <tbody>`;
     topics.sort().forEach(topic => {
       const r = emp.records[topic];
-      const cell = topic; // plain text
+      const cell = topic;
       if (r) {
         html += `<tr>
           <td>${cell}</td>
