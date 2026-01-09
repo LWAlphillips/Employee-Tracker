@@ -59,9 +59,6 @@
         <option value="">— Select your name —</option>
       </select>
     </div>
-    <div class="d-flex justify-content-center mb-4">
-      <button class="btn btn-outline-danger btn-sm" onclick="showAllOverdue()">View All Overdue Trainings</button>
-    </div>
     <div class="text-muted small" id="status">Loading training data...</div>
   </div>
   <!-- Training Details Card -->
@@ -108,7 +105,6 @@ const SUGGESTED_TRAININGS = [
 ];
 
 let employeeMap = {};
-let allOverdue = [];
 
 async function loadData() {
   document.getElementById('status').innerHTML = 'Loading training data...';
@@ -127,42 +123,14 @@ async function loadData() {
     }).filter(r => r['Employee Name'] && r['Topic']);
 
     employeeMap = {};
-    allOverdue = [];
     records.forEach(r => {
       let topic = r['Topic'];
       if (topic === "Fall Protection Awareness") topic = "Fall Protection";
-
       const orig = r['Employee Name'];
       const norm = normalizeName(orig);
       if (!norm || !topic) return;
       if (!employeeMap[norm]) employeeMap[norm] = { original: orig, records: {} };
       employeeMap[norm].records[topic] = r;
-
-      // Collect overdue items
-      if (r['Status'] === 'Overdue') {
-        allOverdue.push({
-          employee: orig,
-          topic: topic,
-          trainingDate: r['Training Date'],
-          expirationDate: r['Expiration Date'],
-          daysRemaining: r['Days Remaining']
-        });
-      }
-    });
-
-    // Add required missing as overdue
-    Object.values(employeeMap).forEach(emp => {
-      REQUIRED_TRAININGS.forEach(topic => {
-        if (!emp.records[topic]) {
-          allOverdue.push({
-            employee: emp.original,
-            topic: topic,
-            trainingDate: '',
-            expirationDate: '',
-            daysRemaining: 'N/A'
-          });
-        }
-      });
     });
 
     populateEmployeeDropdown();
@@ -225,45 +193,11 @@ function populateEmployeeDropdown() {
   };
 }
 
-function showAllOverdue() {
-  if (allOverdue.length === 0) {
-    document.getElementById('detailPane').innerHTML = `<div class="card-body text-center py-5"><p class="fs-4 text-success">No overdue trainings! 🎉</p></div>`;
-  } else {
-    let html = `<div class="card-body">
-      <h3 class="text-center mb-4 fw-bold text-danger">All Overdue Trainings</h3>
-      <div class="table-responsive">
-        <table class="table table-hover">
-          <thead>
-            <tr>
-              <th>Employee</th>
-              <th>Topic</th>
-              <th>Training Date</th>
-              <th>Expires</th>
-              <th>Days Overdue</th>
-            </tr>
-          </thead>
-          <tbody>`;
-    allOverdue.sort((a,b) => a.employee.localeCompare(b.employee) || a.topic.localeCompare(b.topic)).forEach(item => {
-      const days = item.daysRemaining === 'N/A' ? 'Missing' : Math.abs(item.daysRemaining);
-      html += `<tr>
-        <td>${item.employee}</td>
-        <td>${item.topic}</td>
-        <td>${parseTextDate(item.trainingDate)}</td>
-        <td>${parseTextDate(item.expirationDate)}</td>
-        <td class="text-danger fw-bold">${days}</td>
-      </tr>`;
-    });
-    html += `</tbody></table></div></div>`;
-    document.getElementById('detailPane').innerHTML = html;
-  }
-  document.getElementById('detailPane').classList.remove('d-none');
-}
-
 async function exportPDF() {
   await new Promise(r => setTimeout(r, 1000));
   try {
     const pane = document.querySelector('#detailPane .card-body');
-    if (!pane) { alert('Select your name or view overdues first'); return; }
+    if (!pane) { alert('Select your name first'); return; }
     const clone = pane.cloneNode(true);
     // Add hyperlinks for PDF
     clone.querySelectorAll('td:first-child').forEach(td => {
@@ -287,8 +221,8 @@ async function exportPDF() {
     const w = 190;
     const h = (canvas.height * w) / canvas.width;
     pdf.addImage(img, 'PNG', 10, 10, w, h);
-    const title = pane.querySelector('h3')?.textContent.trim() || 'TrainingRecord';
-    pdf.save(`${title.replace(/[^a-z0-9]/gi, '_')}.pdf`);
+    const name = pane.querySelector('h3')?.textContent.trim().replace("'s Training Record", '') || 'TrainingRecord';
+    pdf.save(`${name}_Training_Record.pdf`);
   } catch (e) {
     console.error(e);
     alert('PDF export failed');
