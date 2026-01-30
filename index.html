@@ -52,7 +52,7 @@
 </div>
 
 <script>
-// Correct published CSV URL (this one should work now)
+// Published CSV URL (correct for your sheet)
 const SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRV7v_0mQWcqJI9ExD7lphRQDaHnyv65Tp_i2uDiBJOcxAJ5l6jXV1-WFFBKSU9YZErgLDkGB6nYmug/pub?output=csv';
 
 // SurveyMonkey links for PDF hyperlinks
@@ -78,8 +78,7 @@ const TRAINING_RULES = {
   "Intro to First Aid": "Foreman",
   "OSHA 30 Certificate": "Optional",
   "Certified Rigger and Signaler": "Job Dependent",
-  "SpecialtyConfined Space": "Job Dependent",
-  "Confined Space": "Job Dependent",
+  "Confined Space": "Job Dependent",  // normalized name here
   "Forklift Training": "Job Dependent",
   "Mobile Elevated Work Platform": "Job Dependent",
   "NCCO Crane Operations": "Job Dependent",
@@ -122,7 +121,7 @@ async function loadData() {
       let topic = r['Topic']?.trim();
       if (!topic) return;
 
-      // Normalize topic names from sheet
+      // Normalize topic names BEFORE storing
       if (topic === "SpecialtyConfined Space") topic = "Confined Space";
       if (topic === "Fall Protection Awareness") topic = "Fall Protection";
 
