@@ -108,14 +108,14 @@ async function loadData() {
       if (!norm || !topic) return;
       if (!employeeMap[norm]) employeeMap[norm] = { original: orig, records: {} };
 
-      // Keep the most recent record (prefer latest Completion Date, then latest Expiration Date)
+      // Keep the most recent record
       const existing = employeeMap[norm].records[topic];
-      const newCompDate = r['Completion Date'] ? new Date(parseTextDate(r['Completion Date'])) : new Date(0);
-      const existingCompDate = existing ? new Date(parseTextDate(existing['Completion Date'] || '1900-01-01')) : new Date(0);
-      const newExpDate = r['Expiration Date'] ? new Date(parseTextDate(r['Expiration Date'])) : new Date(0);
-      const existingExpDate = existing ? new Date(parseTextDate(existing['Expiration Date'] || '1900-01-01')) : new Date(0);
+      const newComp = r['Completion Date'] ? new Date(parseTextDate(r['Completion Date'])) : new Date(0);
+      const existingComp = existing ? new Date(parseTextDate(existing['Completion Date'] || '1900-01-01')) : new Date(0);
+      const newExp = r['Expiration Date'] ? new Date(parseTextDate(r['Expiration Date'])) : new Date(0);
+      const existingExp = existing ? new Date(parseTextDate(existing['Expiration Date'] || '1900-01-01')) : new Date(0);
 
-      if (!existing || newCompDate > existingCompDate || newExpDate > existingExpDate) {
+      if (!existing || newComp > existingComp || newExp > existingExp) {
         employeeMap[norm].records[topic] = r;
       }
     });
