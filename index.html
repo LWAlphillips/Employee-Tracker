@@ -98,7 +98,7 @@ async function loadData() {
     records.forEach(r => {
       let topic = r['Topic']?.trim() || '';
 
-      // Full normalization
+      // Normalization
       if (topic === "Fall Protection Awareness") topic = "Fall Protection";
       if (topic === "Wildfire Protection") topic = "Wildfire Smoke Prevention";
       if (topic === "Heat Illness Prevention" && !topic.includes("(Indoor)") && !topic.includes("(Outdoor)")) topic = "Indoor Heat Illness Prevention";
@@ -108,12 +108,13 @@ async function loadData() {
       if (!norm || !topic) return;
       if (!employeeMap[norm]) employeeMap[norm] = { original: orig, records: {} };
 
-      // Keep the most recent record (compare Completion Date or Expiration Date)
       const existing = employeeMap[norm].records[topic];
+
+      // Compare dates to keep the most recent
       const newComp = r['Completion Date'] ? new Date(parseTextDate(r['Completion Date'])) : new Date(0);
-      const existingComp = existing?.['Completion Date'] ? new Date(parseTextDate(existing['Completion Date'])) : new Date(0);
+      const existingComp = existing ? new Date(parseTextDate(existing['Completion Date'] || '1900-01-01')) : new Date(0);
       const newExp = r['Expiration Date'] ? new Date(parseTextDate(r['Expiration Date'])) : new Date(0);
-      const existingExp = existing?.['Expiration Date'] ? new Date(parseTextDate(existing['Expiration Date'])) : new Date(0);
+      const existingExp = existing ? new Date(parseTextDate(existing['Expiration Date'] || '1900-01-01')) : new Date(0);
 
       if (!existing || newComp > existingComp || newExp > existingExp) {
         employeeMap[norm].records[topic] = r;
@@ -127,7 +128,38 @@ async function loadData() {
   }
 }
 
-// (normalizeName, parseTextDate, badge functions unchanged)
+function normalizeName(name) {
+  return name?.replace(/Perira/gi, 'Pereira')
+    .replace(/Silviera/gi, 'Silveira')
+    .replace(/[^\w\s]/g, '')
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, ' ') || '';
+}
+
+function parseTextDate(dateStr) {
+  if (!dateStr) return 'N/A';
+  const months = {Jan:0,Feb:1,Mar:2,Apr:3,May:4,Jun:5,Jul:6,Aug:7,Sep:8,Oct:9,Nov:10,Dec:11};
+  const match = dateStr.match(/(\w{3})\s+(\d{1,2}),\s+(\d{4})/);
+  if (match) {
+    const [_, month, day, year] = match;
+    return new Date(year, months[month], day).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+  }
+  const parts = dateStr.split('/');
+  if (parts.length === 3) {
+    return new Date(parts[2], parts[0]-1, parts[1]).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+  }
+  return dateStr || 'N/A';
+}
+
+function badge(r) {
+  const s = r['Status'] || '';
+  const days = r['Days Remaining'] || '';
+  if (s === 'Completed') return `<span class="badge badge-comp">Completed</span>`;
+  if (s === 'Not Due') return `<span class="badge badge-due">Not Due${days ? ' (' + days + 'd)' : ''}</span>`;
+  if (s === 'Overdue') return `<span class="badge badge-over">Overdue${days ? ' (' + days + 'd)' : ''}</span>`;
+  return `<span class="badge bg-secondary text-white">${s || '—'}</span>`;
+}
 
 function populateEmployeeDropdown() {
   const sel = document.getElementById('employeeSelect');
