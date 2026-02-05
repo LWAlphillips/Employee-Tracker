@@ -56,7 +56,7 @@ const LINKS = {
   "Workplace Violence Prevention": "https://www.surveymonkey.com/r/LWAWVPP"
 };
 
-// REQUIRED TRAININGS (canonical names)
+// REQUIRED TRAININGS
 const REQUIRED_TRAININGS = [
   "Fall Protection",
   "Hazard Communication (HazCom/GHS)",
@@ -98,7 +98,7 @@ async function loadData() {
     records.forEach(r => {
       let topic = r['Topic']?.trim() || '';
 
-      // Normalize variations
+      // Full normalization
       if (topic === "Fall Protection Awareness") topic = "Fall Protection";
       if (topic === "Wildfire Protection") topic = "Wildfire Smoke Prevention";
       if (topic === "Heat Illness Prevention" && !topic.includes("(Indoor)") && !topic.includes("(Outdoor)")) topic = "Indoor Heat Illness Prevention";
@@ -108,9 +108,16 @@ async function loadData() {
       if (!norm || !topic) return;
       if (!employeeMap[norm]) employeeMap[norm] = { original: orig, records: {} };
 
-      // Keep only the most recent/valid record per topic (prefer non-blank Expiration or latest Completion)
+      // Keep the best record per topic (prefer latest Completion Date or non-expired)
       const existing = employeeMap[norm].records[topic];
-      if (!existing || (r['Completion Date'] && (!existing['Completion Date'] || r['Completion Date'] > existing['Completion Date']))) {
+      const newCompletion = r['Completion Date'];
+      const existingCompletion = existing?.['Completion Date'];
+      const newExpiration = r['Expiration Date'];
+      const existingExpiration = existing?.['Expiration Date'];
+
+      if (!existing || 
+          (newCompletion && (!existingCompletion || newCompletion > existingCompletion)) ||
+          (newExpiration && (!existingExpiration || newExpiration > existingExpiration))) {
         employeeMap[norm].records[topic] = r;
       }
     });
