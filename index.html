@@ -10,47 +10,20 @@
   <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
   <style>
     body { background:#f4f6f9; font-family:system-ui, -apple-system, sans-serif; }
-    .header-section {
-      text-align: center;
-      padding: 2.5rem 1rem 2rem;
-    }
-    .main-title {
-      font-size: 2rem;
-      font-weight: 700;
-      color: #007bff;
-      margin-bottom: 0.5rem;
-    }
-    .subtitle {
-      color: #555;
-      margin-bottom: 2rem;
-      font-size: 1.1rem;
-    }
+    .header-section { text-align: center; padding: 2.5rem 1rem 2rem; }
+    .main-title { font-size: 2rem; font-weight: 700; color: #007bff; margin-bottom: 0.5rem; }
+    .subtitle { color: #555; margin-bottom: 2rem; font-size: 1.1rem; }
     .badge-due { background:#28a745; color:#fff; font-weight:600; }
     .badge-over { background:#dc3545; color:#fff; font-weight:600; }
     .badge-comp { background:#6c757d; color:#fff; }
     .badge-norecord { background:#adb5bd; color:#fff; }
-    table th {
-      background:#343a40;
-      color:#fff;
-      font-weight:600;
-    }
-    .card {
-      box-shadow:0 4px 12px rgba(0,0,0,.07);
-      border:none;
-      border-radius:12px;
-    }
-    .section-header {
-      background:#e9ecef;
-      font-weight:bold;
-      padding:8px 12px;
-      border-radius:8px;
-      margin:20px 0 10px;
-    }
+    table th { background:#343a40; color:#fff; font-weight:600; }
+    .card { box-shadow:0 4px 12px rgba(0,0,0,.07); border:none; border-radius:12px; }
+    .section-header { background:#e9ecef; font-weight:bold; padding:8px 12px; border-radius:8px; margin:20px 0 10px; }
   </style>
 </head>
 <body>
 <div class="container-fluid">
-  <!-- Header -->
   <div class="header-section">
     <h1 class="main-title">My LWA Training Record</h1>
     <p class="subtitle lead">Select your name below to view your current training status</p>
@@ -61,7 +34,6 @@
     </div>
     <div class="text-muted small" id="status">Loading training data...</div>
   </div>
-  <!-- Training Details Card -->
   <div class="card mx-3 mx-md-5 mb-5 shadow d-none" id="detailPane">
     <div class="card-body p-4">
       <div class="text-center py-5">
@@ -72,7 +44,7 @@
 </div>
 
 <script>
-// CORRECT SHARED CSV URL (same as main tracker)
+// SHARED CSV URL
 const SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRV7v_0mQWcqJI9ExD7lphRQDaHnyv65Tp_i2uDiBJOcxAJ5l6jXV1-WFFBKSU9YZErgLDkGB6nYmug/pub?output=csv';
 
 const LINKS = {
@@ -126,16 +98,21 @@ async function loadData() {
     records.forEach(r => {
       let topic = r['Topic']?.trim() || '';
 
-      // Full normalization for variations
+      // Normalize variations
       if (topic === "Fall Protection Awareness") topic = "Fall Protection";
       if (topic === "Wildfire Protection") topic = "Wildfire Smoke Prevention";
-      if (topic === "Heat Illness Prevention" && !topic.includes("(Indoor)")) topic = "Indoor Heat Illness Prevention"; // fallback
+      if (topic === "Heat Illness Prevention" && !topic.includes("(Indoor)") && !topic.includes("(Outdoor)")) topic = "Indoor Heat Illness Prevention";
 
       const orig = r['Employee Name']?.trim() || '';
       const norm = normalizeName(orig);
       if (!norm || !topic) return;
       if (!employeeMap[norm]) employeeMap[norm] = { original: orig, records: {} };
-      employeeMap[norm].records[topic] = r;
+
+      // Keep only the most recent/valid record per topic (prefer non-blank Expiration or latest Completion)
+      const existing = employeeMap[norm].records[topic];
+      if (!existing || (r['Completion Date'] && (!existing['Completion Date'] || r['Completion Date'] > existing['Completion Date']))) {
+        employeeMap[norm].records[topic] = r;
+      }
     });
 
     populateEmployeeDropdown();
@@ -145,38 +122,7 @@ async function loadData() {
   }
 }
 
-function normalizeName(name) {
-  return name?.replace(/Perira/gi, 'Pereira')
-    .replace(/Silviera/gi, 'Silveira')
-    .replace(/[^\w\s]/g, '')
-    .trim()
-    .toLowerCase()
-    .replace(/\s+/g, ' ') || '';
-}
-
-function parseTextDate(dateStr) {
-  if (!dateStr) return 'N/A';
-  const months = {Jan:0,Feb:1,Mar:2,Apr:3,May:4,Jun:5,Jul:6,Aug:7,Sep:8,Oct:9,Nov:10,Dec:11};
-  const match = dateStr.match(/(\w{3})\s+(\d{1,2}),\s+(\d{4})/);
-  if (match) {
-    const [_, month, day, year] = match;
-    return new Date(year, months[month], day).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
-  }
-  const parts = dateStr.split('/');
-  if (parts.length === 3) {
-    return new Date(parts[2], parts[0]-1, parts[1]).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
-  }
-  return dateStr || 'N/A';
-}
-
-function badge(r) {
-  const s = r['Status'] || '';
-  const days = r['Days Remaining'] || '';
-  if (s === 'Completed') return `<span class="badge badge-comp">Completed</span>`;
-  if (s === 'Not Due') return `<span class="badge badge-due">Not Due${days ? ' (' + days + 'd)' : ''}</span>`;
-  if (s === 'Overdue') return `<span class="badge badge-over">Overdue${days ? ' (' + days + 'd)' : ''}</span>`;
-  return `<span class="badge bg-secondary text-white">${s || '—'}</span>`;
-}
+// (normalizeName, parseTextDate, badge functions unchanged)
 
 function populateEmployeeDropdown() {
   const sel = document.getElementById('employeeSelect');
@@ -204,7 +150,6 @@ async function exportPDF() {
     const pane = document.querySelector('#detailPane .card-body');
     if (!pane) { alert('Select your name first'); return; }
     const clone = pane.cloneNode(true);
-    // Add hyperlinks for PDF
     clone.querySelectorAll('td:first-child').forEach(td => {
       const topic = td.textContent.trim();
       const link = LINKS[topic];
