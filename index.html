@@ -8,140 +8,135 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
   <style>
     body { background:#f4f6f9; font-family:system-ui, -apple-system, sans-serif; }
-    .header-section { text-align: center; padding: 2.5rem 1rem 2rem; }
-    .main-title { font-size: 2rem; font-weight: 700; color: #007bff; margin-bottom: 0.5rem; }
-    .subtitle { color: #555; margin-bottom: 2rem; font-size: 1.1rem; }
+    .header-section {
+      text-align: center;
+      padding: 2.5rem 1rem 2rem;
+    }
+    .main-title {
+      font-size: 2rem;
+      font-weight: 700;
+      color: #007bff;
+      margin-bottom: 0.5rem;
+    }
+    .subtitle {
+      color: #555;
+      margin-bottom: 2rem;
+      font-size: 1.1rem;
+    }
     .badge-due { background:#28a745; color:#fff; font-weight:600; }
     .badge-over { background:#dc3545; color:#fff; font-weight:600; }
     .badge-comp { background:#6c757d; color:#fff; }
     .badge-norecord { background:#adb5bd; color:#fff; }
-    table th { background:#343a40; color:#fff; font-weight:600; }
-    .card { box-shadow:0 4px 12px rgba(0,0,0,.07); border:none; border-radius:12px; }
-    .section-header { background:#e9ecef; font-weight:bold; padding:8px 12px; border-radius:8px; margin:20px 0 10px; }
-    @media (max-width: 767px) {
-      .table-responsive { overflow-x: hidden; }
-      table { display: none; }
-      .training-card { background: white; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); margin-bottom: 1rem; padding: 1rem; }
-      .training-card h5 { margin: 0 0 0.75rem; font-size: 1.1rem; }
-      .training-card .detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; font-size: 0.9rem; }
-      .training-card .detail-grid > div { display: flex; flex-direction: column; }
-      .training-card .detail-grid .label { font-weight: 600; color: #555; font-size: 0.8rem; }
+    table th {
+      background:#343a40;
+      color:#fff;
+      font-weight:600;
+    }
+    .card {
+      box-shadow:0 4px 12px rgba(0,0,0,.07);
+      border:none;
+      border-radius:12px;
+    }
+    .section-header {
+      background:#e9ecef;
+      font-weight:bold;
+      padding:8px 12px;
+      border-radius:8px;
+      margin:20px 0 10px;
     }
   </style>
 </head>
 <body>
 <div class="container-fluid">
+  <!-- Header -->
   <div class="header-section">
     <h1 class="main-title">My LWA Training Record</h1>
     <p class="subtitle lead">Select your name below to view your current training status</p>
-    <div class="d-flex justify-content-center mb-3 position-relative">
-      <input id="employeeSearch" class="form-control w-100" style="max-width:400px;"
-             placeholder="Search by name..." autocomplete="off" list="employeeList">
-      <datalist id="employeeList"></datalist>
+    <div class="d-flex justify-content-center mb-3">
+      <select id="employeeSelect" class="form-select w-auto" style="min-width:300px; max-width:100%;">
+        <option value="">— Select your name —</option>
+      </select>
     </div>
     <div class="text-muted small" id="status">Loading training data...</div>
-    <div class="text-muted small mt-2" id="lastUpdated">Last loaded: —</div>
   </div>
-
+  <!-- Training Details Card -->
   <div class="card mx-3 mx-md-5 mb-5 shadow d-none" id="detailPane">
-    <div class="card-body p-4"></div>
+    <div class="card-body p-4">
+      <div class="text-center py-5">
+        <p class="fs-4 text-muted">Select your name above to view your training record</p>
+      </div>
+    </div>
   </div>
 </div>
 
 <script>
-// Published CSV URL (correct for your sheet)
+// CORRECT SHARED CSV URL
 const SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRV7v_0mQWcqJI9ExD7lphRQDaHnyv65Tp_i2uDiBJOcxAJ5l6jXV1-WFFBKSU9YZErgLDkGB6nYmug/pub?output=csv';
 
-// SurveyMonkey links for PDF hyperlinks
 const LINKS = {
   "Fall Protection": "https://www.surveymonkey.com/r/LWAFallProtectionQuiz",
   "Hazard Communication (HazCom/GHS)": "https://www.surveymonkey.com/r/LWAHazCom",
   "Indoor Heat Illness Prevention": "https://www.surveymonkey.com/r/LWAIndoorHeatIllness",
   "Outdoor Heat Illness Prevention": "https://www.surveymonkey.com/r/LWAHeatIllnessQuiz",
-  "Wildfire Protection": "https://www.surveymonkey.com/r/LWAWildFireTraining",
+  "Wildfire Smoke Prevention": "https://www.surveymonkey.com/r/LWAWildFireTraining",
   "Workplace Violence Prevention": "https://www.surveymonkey.com/r/LWAWVPP"
 };
 
-const TRAINING_RULES = {
-  "Fire Prevention and Extinguishers": "All Required",
-  "Workplace Violence Prevention": "All Required",
-  "Fall Protection": "Field Required",
-  "Heat Illness Prevention (Indoor)": "Field Required",
-  "Heat Illness Prevention (Outdoor)": "Field Required",
-  "Personal Protective Equipment": "Field Required",
-  "Silica Awareness Training": "Field Required",
-  "Wildfire Protection": "Field Required",
-  "First Aid/CPR/AED": "Foreman",
-  "Intro to First Aid": "Foreman",
-  "OSHA 30 Certificate": "Optional",
-  "Certified Rigger and Signaler": "Job Dependent",
-  "Confined Space": "Job Dependent",  // normalized name here
-  "Forklift Training": "Job Dependent",
-  "Mobile Elevated Work Platform": "Job Dependent",
-  "NCCO Crane Operations": "Job Dependent",
-  "Part 46 New Miner": "Job Dependent",
-  "Part 46 Refresher": "Job Dependent",
-  "Respiratory Fit Testing": "Job Dependent",
-  "Respiratory Medical Questionnare": "Job Dependent",
-  "Silica Dust Exposure": "Job Dependent"
-};
+// REQUIRED TRAININGS
+const REQUIRED_TRAININGS = [
+  "Fall Protection",
+  "Hazard Communication (HazCom/GHS)",
+  "Indoor Heat Illness Prevention",
+  "Outdoor Heat Illness Prevention",
+  "Wildfire Smoke Prevention",
+  "Workplace Violence Prevention"
+];
 
-function isRequiredForRole(topic, role) {
-  const rule = TRAINING_RULES[topic];
-  if (!rule) return false;
-  const r = (role || '').trim().toLowerCase();
-  if (rule === "All Required") return true;
-  if (rule === "Field Required") return r === "field" || r === "foreman";
-  if (rule === "Foreman") return r === "foreman";
-  if (rule === "Office") return r === "office";
-  return false;
-}
+// SUGGESTED TRAININGS
+const SUGGESTED_TRAININGS = [
+  "Confined Space",
+  "Forklift Training",
+  "Mobile Elevated Work Platform",
+  "First Aid/CPR/AED",
+  "Harassment & Discrimination Training",
+  "Workplace Violence Property Assessment"
+];
 
 let employeeMap = {};
 
 async function loadData() {
-  const status = document.getElementById('status');
-  status.innerHTML = 'Loading training data...';
+  document.getElementById('status').innerHTML = 'Loading training data...';
   try {
     const resp = await fetch(SHEET_URL + '&_=' + Date.now());
-    if (!resp.ok) throw new Error('Failed to load CSV');
+    if (!resp.ok) throw new Error('Failed to load');
     const text = await resp.text();
-    const parsed = Papa.parse(text, {
-      header: true,
-      skipEmptyLines: true,
-      transformHeader: h => h.trim().replace(/^"|"$/g, ''),
-      transform: v => v.trim().replace(/^"|"$/g, '')
-    });
-    const records = parsed.data.filter(r => r['Employee Name'] && r['Topic']);
+    const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+    if (lines.length < 2) throw new Error('No data');
+    const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, ''));
+    const records = lines.slice(1).map(line => {
+      const vals = line.split(',').map(v => v.trim().replace(/^"|"$/g, ''));
+      const rec = {};
+      headers.forEach((h, i) => rec[h] = vals[i] || '');
+      return rec;
+    }).filter(r => r['Employee Name'] && r['Topic']);
+
     employeeMap = {};
     records.forEach(r => {
-      let topic = r['Topic']?.trim();
-      if (!topic) return;
-
-      // Normalize topic names BEFORE storing
-      if (topic === "SpecialtyConfined Space") topic = "Confined Space";
+      let topic = r['Topic'];
       if (topic === "Fall Protection Awareness") topic = "Fall Protection";
-
-      const origName = r['Employee Name']?.trim();
-      const normName = normalizeName(origName);
-      if (!normName || !topic) return;
-
-      const role = (r['Role'] || '').trim();
-
-      if (!employeeMap[normName]) {
-        employeeMap[normName] = { original: origName, role, records: {} };
-      }
-      employeeMap[normName].records[topic] = r;
+      const orig = r['Employee Name'];
+      const norm = normalizeName(orig);
+      if (!norm || !topic) return;
+      if (!employeeMap[norm]) employeeMap[norm] = { original: orig, records: {} };
+      employeeMap[norm].records[topic] = r;
     });
+
     populateEmployeeDropdown();
-    updateLastUpdated();
-    status.innerHTML = '';
+    document.getElementById('status').innerHTML = '';
   } catch (err) {
-    console.error(err);
-    status.innerHTML = '<span class="text-danger">Error loading data — please try again later</span>';
+    document.getElementById('status').innerHTML = '<span class="text-danger">Error loading data — please try again later</span>';
   }
 }
 
@@ -171,73 +166,45 @@ function parseTextDate(dateStr) {
 
 function badge(r) {
   const s = r['Status'] || '';
-  const daysStr = r['Days Remaining'] || '';
-  const days = parseInt(daysStr, 10);
-  let badgeClass = 'bg-secondary';
-  let text = s || '—';
-  if (s === 'Completed') {
-    badgeClass = 'badge-comp';
-    text = 'Completed';
-  } else if (s === 'Not Due') {
-    badgeClass = 'badge-due';
-    text = 'Not Due' + (daysStr ? ` (${daysStr}d)` : '');
-  } else if (s === 'Overdue') {
-    badgeClass = 'badge-over';
-    text = 'Overdue' + (daysStr ? ` (${daysStr}d)` : '');
-  }
-  return `<span class="badge ${badgeClass}">${text}</span>`;
-}
-
-function daysLeftStyle(daysStr) {
-  if (!daysStr || daysStr === 'N/A') return '';
-  const days = parseInt(daysStr, 10);
-  if (isNaN(days)) return '';
-  if (days <= 0) return 'text-danger fw-bold';
-  if (days <= 30) return 'text-warning fw-bold';
-  return 'text-success';
+  const days = r['Days Remaining'] || '';
+  if (s === 'Completed') return `<span class="badge badge-comp">Completed</span>`;
+  if (s === 'Not Due') return `<span class="badge badge-due">Not Due${days ? ' (' + days + 'd)' : ''}</span>`;
+  if (s === 'Overdue') return `<span class="badge badge-over">Overdue${days ? ' (' + days + 'd)' : ''}</span>`;
+  return `<span class="badge bg-secondary text-white">${s || '—'}</span>`;
 }
 
 function populateEmployeeDropdown() {
-  const input = document.getElementById('employeeSearch');
-  const datalist = document.getElementById('employeeList');
-  datalist.innerHTML = '';
+  const sel = document.getElementById('employeeSelect');
+  sel.innerHTML = '<option value="">— Select your name —</option>';
   Object.keys(employeeMap)
     .sort((a,b) => employeeMap[a].original.localeCompare(employeeMap[b].original))
     .forEach(norm => {
       const opt = document.createElement('option');
-      opt.value = employeeMap[norm].original;
-      opt.dataset.norm = norm;
-      datalist.appendChild(opt);
+      opt.value = norm;
+      opt.textContent = employeeMap[norm].original;
+      sel.appendChild(opt);
     });
-  input.oninput = () => {
-    const selectedOpt = Array.from(datalist.options).find(opt => opt.value === input.value);
-    if (selectedOpt) {
-      const norm = selectedOpt.dataset.norm;
-      if (norm) showEmployeeDetail(norm);
+  sel.onchange = e => {
+    if (e.target.value) {
+      showEmployeeDetail(e.target.value);
     } else {
       document.getElementById('detailPane').classList.add('d-none');
     }
   };
-  input.onfocus = () => { if (input.value === '') input.value = ''; };
-}
-
-function updateLastUpdated() {
-  const now = new Date();
-  document.getElementById('lastUpdated').textContent = 
-    `Last loaded: ${now.toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' })}`;
 }
 
 async function exportPDF() {
-  await new Promise(r => setTimeout(r, 500));
+  await new Promise(r => setTimeout(r, 1000));
   try {
     const pane = document.querySelector('#detailPane .card-body');
-    if (!pane) return alert('Select your name first');
+    if (!pane) { alert('Select your name first'); return; }
     const clone = pane.cloneNode(true);
-    clone.querySelectorAll('td:first-child, h5').forEach(el => {
-      const topic = el.textContent.trim();
+    // Add hyperlinks for PDF
+    clone.querySelectorAll('td:first-child').forEach(td => {
+      const topic = td.textContent.trim();
       const link = LINKS[topic];
       if (link) {
-        el.innerHTML = `<a href="${link}" style="color:#007bff; text-decoration:underline;">${topic}</a>`;
+        td.innerHTML = `<a href="${link}" style="color:#007bff; text-decoration:underline;">${topic}</a>`;
       }
     });
     clone.style.padding = '20px';
@@ -266,104 +233,55 @@ function showEmployeeDetail(norm) {
   const emp = employeeMap[norm];
   if (!emp) return;
   const name = emp.original;
-  const role = emp.role || "Unknown";
+  let html = `<div class="card-body">
+    <div class="d-flex justify-content-between align-items-start mb-4">
+      <h3 class="fw-bold">${name}'s Training Record</h3>
+      <button class="btn btn-success btn-sm" onclick="exportPDF()">Download PDF</button>
+    </div>
+    <div class="table-responsive">`;
 
-  let html = `
-    <div class="card-body">
-      <div class="d-flex justify-content-between align-items-start mb-4">
-        <div>
-          <h3 class="fw-bold">${name}'s Training Record</h3>
-          <div class="text-muted">Role: ${role}</div>
-        </div>
-        <button class="btn btn-success btn-sm" onclick="exportPDF()">Download PDF</button>
-      </div>
-      <div class="table-responsive">`;
-
-  const addSection = (title, topics, showAsRequired = false) => {
+  const addSection = (title, topics) => {
     if (topics.length === 0) return;
-    const isMobile = window.innerWidth < 768;
-    html += `<div class="section-header">${title}</div>`;
-    if (isMobile) {
-      topics.sort((a,b) => a.localeCompare(b)).forEach(topic => {
-        const r = emp.records[topic];
-        const days = r?.['Days Remaining'] || '-';
-        const statusHtml = badge(r || { Status: 'No Record' });
-        let rowClass = '';
-        if (showAsRequired && r?.Status !== 'Completed') {
-          rowClass = r?.Status === 'Overdue' ? 'border-danger' : 'border-warning';
-        }
-        html += `
-          <div class="training-card border ${rowClass}">
-            <h5>${topic}</h5>
-            <div class="detail-grid">
-              <div><span class="label">Training Date</span>${parseTextDate(r?.['Training Date'])}</div>
-              <div><span class="label">Completion</span>${parseTextDate(r?.['Completion Date'])}</div>
-              <div><span class="label">Expires</span>${parseTextDate(r?.['Expiration Date'])}</div>
-              <div><span class="label">Days Left</span><span class="${daysLeftStyle(days)}">${days}</span></div>
-              <div><span class="label">Status</span>${statusHtml}</div>
-            </div>
-          </div>`;
-      });
-    } else {
-      html += `
-        <table class="table table-hover">
-          <thead>
-            <tr>
-              <th>Training Topic</th>
-              <th>Training Date</th>
-              <th>Completion Date</th>
-              <th>Expires</th>
-              <th>Days Left</th>
-              <th>Status</th>
-            </tr>
-          </thead>
-          <tbody>`;
-      topics.sort((a,b) => a.localeCompare(b)).forEach(topic => {
-        const r = emp.records[topic];
-        let rowClass = '';
-        if (showAsRequired && r?.Status !== 'Completed') {
-          rowClass = r?.Status === 'Overdue' ? 'table-danger' : 'table-warning';
-        }
-        if (r) {
-          html += `
-            <tr class="${rowClass}">
-              <td>${topic}</td>
-              <td>${parseTextDate(r['Training Date'])}</td>
-              <td>${parseTextDate(r['Completion Date'])}</td>
-              <td>${parseTextDate(r['Expiration Date'])}</td>
-              <td class="${daysLeftStyle(r['Days Remaining'])}">${r['Days Remaining'] || '-'}</td>
-              <td>${badge(r)}</td>
-            </tr>`;
-        } else {
-          html += `
-            <tr class="table-light ${rowClass}">
-              <td>${topic}</td>
-              <td colspan="5"><span class="badge badge-norecord">No Record</span></td>
-            </tr>`;
-        }
-      });
-      html += `</tbody></table>`;
-    }
+    html += `<div class="section-header">${title}</div>
+      <table class="table table-hover">
+        <thead>
+          <tr>
+            <th>Training Topic</th>
+            <th>Training Date</th>
+            <th>Completion Date</th>
+            <th>Expires</th>
+            <th>Days Left</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>`;
+    topics.sort().forEach(topic => {
+      const r = emp.records[topic];
+      const cell = topic;
+      if (r) {
+        html += `<tr>
+          <td>${cell}</td>
+          <td>${parseTextDate(r['Training Date'])}</td>
+          <td>${parseTextDate(r['Completion Date'])}</td>
+          <td>${parseTextDate(r['Expiration Date'])}</td>
+          <td>${r['Days Remaining'] || '-'}</td>
+          <td>${badge(r)}</td>
+        </tr>`;
+      } else {
+        html += `<tr class="table-light">
+          <td>${cell}</td>
+          <td colspan="5"><span class="badge badge-norecord">No Record</span></td>
+        </tr>`;
+      }
+    });
+    html += `</tbody></table>`;
   };
 
-  const requiredTopics = Object.keys(TRAINING_RULES).filter(t =>
-    isRequiredForRole(t, role) && TRAINING_RULES[t] !== "Job Dependent"
-  );
-  addSection(`Required for ${role} Role`, requiredTopics, true);
+  addSection("Required Trainings", REQUIRED_TRAININGS);
+  addSection("Suggested Trainings", SUGGESTED_TRAININGS);
 
-  const jobDepTopics = Object.keys(TRAINING_RULES).filter(t =>
-    TRAINING_RULES[t] === "Job Dependent"
-  );
-  addSection("Job Dependent Trainings", jobDepTopics);
-
-  const optionalTopics = Object.keys(TRAINING_RULES).filter(t =>
-    TRAINING_RULES[t] === "Optional"
-  );
-  addSection("Optional / Recommended Trainings", optionalTopics);
-
-  const knownTopics = new Set(Object.keys(TRAINING_RULES));
-  const additional = Object.keys(emp.records).filter(t => !knownTopics.has(t));
-  addSection("Additional / Other Trainings", additional);
+  const additional = Object.keys(emp.records).filter(t => !REQUIRED_TRAININGS.includes(t) && !SUGGESTED_TRAININGS.includes(t));
+  addSection("Additional Trainings", additional);
 
   html += `</div></div>`;
   document.getElementById('detailPane').innerHTML = html;
@@ -371,7 +289,6 @@ function showEmployeeDetail(norm) {
 }
 
 loadData();
-setInterval(loadData, 900000);
 </script>
 </body>
 </html>
